@@ -110,4 +110,42 @@ class Workable_API {
 		return $result;
 	}
 
+	/**
+	 * Send the application form data to the API.
+	 *
+	 * @since    1.0.0
+	 */
+	public function send_application_form() {
+
+		if ( wp_verify_nonce( $_POST['workable_form_nonce'], 'submit_workable_form' ) ) {
+
+			$form_data            = $_POST;
+			$form_data['sourced'] = false;
+
+			unset( $form_data['_wp_http_referer'] );
+			unset( $form_data['workable_form_nonce'] );
+			unset( $form_data['action'] );
+
+			$response = wp_remote_request(
+				$this->get_url() . 'jobs/' . $form_data['shortcode'] . '/candidates',
+				array(
+					'headers' => array(
+						'Authorization' => $this->get_header(),
+						'Content-Type'  => 'application/json',
+						'Accept'        => 'application/json',
+					),
+					'method'  => 'POST',
+					'body'    => wp_json_encode( $form_data ),
+				),
+			);
+		} else {
+			wp_die( 'Validation failure' );
+		}
+
+		var_dump( $response );
+
+		wp_die();
+
+	}
+
 }

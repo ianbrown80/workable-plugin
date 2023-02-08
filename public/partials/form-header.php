@@ -17,4 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <div class="workable-form-container">
-	<form id="workable-form-xxxx" class="workable-form">
+	<form id="<?php echo esc_attr( 'workable-form-' . $shortcode ); ?>" class="workable-form" action="#">
+		<label for="<?php echo esc_attr( 'firstname-' . $shortcode ); ?>">First name</label>
+		<input type="text" id="<?php echo esc_attr( 'firstname-' . $shortcode ); ?>" name="firstname" required />
+		<br>
+		<label for="<?php echo esc_attr( 'lastname-' . $shortcode ); ?>">Last name</label>
+		<input type="text" id="<?php echo esc_attr( 'lastname-' . $shortcode ); ?>" name="lastname" required />
+		<br>
+		<label for="<?php echo esc_attr( 'email-' . $shortcode ); ?>">Email</label>
+		<input type="text" id="<?php echo esc_attr( 'email-' . $shortcode ); ?>" name="email" required />

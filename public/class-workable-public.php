@@ -72,6 +72,7 @@ class Workable_Public {
 	public function enqueue_scripts() {
 
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/public.js', array( 'jquery' ), $this->version, false );
+		wp_localize_script( $this->plugin_name, 'workable_scripts', array( 'ajaxurl' => admin_url( 'admin-ajax.php' ) ) );
 
 	}
 

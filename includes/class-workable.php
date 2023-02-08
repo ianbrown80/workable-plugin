@@ -188,6 +188,8 @@ class Workable {
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+		$this->loader->add_action( 'wp_ajax_send_application_form', $this->api, 'send_application_form' );
+		$this->loader->add_action( 'wp_ajax_nopriv_send_application_form', $this->api, 'send_application_form' );
 
 	}
 
@@ -254,7 +256,7 @@ class Workable {
 
 				ob_start();
 
-				$this->render_form_header();
+				$this->render_form_header( $shortcode );
 
 				if ( isset( $form->form_fields ) && ! empty( $form->form_fields ) ) {
 
@@ -268,7 +270,7 @@ class Workable {
 
 				}
 
-				$this->render_form_footer();
+				$this->render_form_footer( $shortcode );
 
 				ob_end_flush();
 
@@ -284,7 +286,7 @@ class Workable {
 	 * Display the form header HTML.
 	 * @since     1.0.0
 	 */
-	private function render_form_header() {
+	private function render_form_header( $shortcode ) {
 
 		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/form-header.php';
 	}
@@ -301,22 +303,22 @@ class Workable {
 
 			switch ( $field->type ) {
 				case 'string':
-					$this->render_text_field( $id, $field->key, $field->label, $field->required );
+					$this->render_text( $id, $field->key, $field->label, $field->required, isset( $field->max_length ) ? $field->max_length : '' );
 					break;
 				case 'free_text':
-					$this->render_free_text_field( $id, $field->key, $field->label, $field->required );
+					$this->render_free_text( $id, $field->key, $field->label, $field->required );
 					break;
 				case 'file':
-					$this->render_file_field( $id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
+					$this->render_file( $id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
 					break;
 				case 'boolean':
-					$this->render_boolean_field( $id, $field->key, $field->label, $field->required );
+					$this->render_boolean( $id, $field->key, $field->label, $field->required );
 					break;
 				case 'date':
-					$this->render_date_field( $id, $field->key, $field->label, $field->required );
+					$this->render_date( $id, $field->key, $field->label, $field->required );
 					break;
 				case 'complex':
-					$this->render_complex_field( $id, $field->key, $field->label, $field->required );
+					$this->render_complex( $id, $field->key, $field->label, $field->required, $field->multiple, $field->fields );
 					break;
 			}
 		}
@@ -334,25 +336,25 @@ class Workable {
 
 			switch ( $question->type ) {
 				case 'multiple_choice':
-					$this->render_multiple_choice_question( $id, $question->id, $question->body, $question->required );
+					$this->render_multiple_choice( $id, $question->id, $question->body, $question->required, $question->single_answer, $question->choices );
 					break;
 				case 'free_text':
-					$this->render_free_text_question( $id, $question->id, $question->body, $question->required );
+					$this->render_free_text( $id, $question->id, $question->body, $question->required );
 					break;
 				case 'file':
-					$this->render_file_question( $id, $question->id, $question->body, $question->required, $question->supported_file_types, $question->max_file_size );
+					$this->render_file( $id, $question->id, $question->body, $question->required, $question->supported_file_types, $question->max_file_size );
 					break;
 				case 'boolean':
-					$this->render_boolean_question( $id, $question->id, $question->body, $question->required );
+					$this->render_boolean( $id, $question->id, $question->body, $question->required );
 					break;
 				case 'date':
-					$this->render_date_question( $id, $question->id, $question->body, $question->required );
+					$this->render_date( $id, $question->id, $question->body, $question->required );
 					break;
 				case 'dropdown':
-					$this->render_dropdown_question( $id, $question->id, $question->body, $question->required );
+					$this->render_dropdown( $id, $question->id, $question->body, $question->required, $question->single_answer, $question->choices );
 					break;
 				case 'numeric':
-					$this->render_numeric_question( $id, $question->id, $question->body, $question->required );
+					$this->render_numeric( $id, $question->id, $question->body, $question->required );
 					break;
 			}
 		}
@@ -362,7 +364,7 @@ class Workable {
 	 * Display the form footer HTML.
 	 * @since     1.0.0
 	 */
-	private function render_form_footer() {
+	private function render_form_footer( $shortcode ) {
 
 		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/form-footer.php';
 	}
@@ -375,10 +377,10 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_text_field( $id, $key, $label, $required ) {
+	private function render_text( $id, $key, $label, $required, $maxlength = '' ) {
 		?>
 		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="text" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
+		<input type="text" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $maxlength ? 'maxlength="' . esc_attr( $maxlength ) . '"' : ''; ?>/>
 		</br>
 		<?php
 	}
@@ -391,7 +393,7 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_free_text_field( $id, $key, $label, $required ) {
+	private function render_free_text( $id, $key, $label, $required ) {
 		?>
 		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
 		<textarea id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>></textarea>
@@ -409,7 +411,7 @@ class Workable {
 	 * @param int $required The maximum file size.
 	 * @since     1.0.0
 	 */
-	private function render_file_field( $id, $key, $label, $required, $file_types, $max_file ) {
+	private function render_file( $id, $key, $label, $required, $file_types, $max_file ) {
 
 		if ( isset( $file_types ) && ! empty( $file_types ) ) {
 			foreach ( $file_types as $type_key => $file_type ) {
@@ -433,14 +435,14 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_boolean_field( $id, $key, $label, $required ) {
+	private function render_boolean( $id, $key, $label, $required ) {
 		?>
 		<p><?php echo esc_html( $label ); ?></p>
-		<label>
+		<label for="<?php echo esc_attr( $key . '-' . $id . '-yes' ); ?>">
 			Yes
 			<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . '-yes' ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="true"/>
 		</label>
-		<label>
+		<label for="<?php echo esc_attr( $key . '-' . $id . '-no' ); ?>">
 			No
 			<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . '-no' ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="false"/>
 		</label>
@@ -456,7 +458,7 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_date_field( $id, $key, $label, $required ) {
+	private function render_date( $id, $key, $label, $required ) {
 		?>
 		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
 		<input type="date" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
@@ -472,12 +474,40 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_complex_field( $id, $key, $label, $required ) {
-		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="text" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
-		</br>
-		<?php
+	private function render_complex( $id, $key, $label, $required, $multiple, $fields ) {
+
+		if ( $multiple ) :
+			?>
+			<fieldset id="<?php echo esc_attr( $key . '-' . $id ); ?>">
+				<legend><?php echo esc_html( $label ); ?> </legend>
+					<div class="field-row">
+					<?php
+					foreach ( $fields as $field ) {
+						switch ( $field->type ) {
+							case 'string':
+								$this->render_text( $id, $field->key, $field->label, $field->required, isset( $field->max_length ) ? $field->max_length : '' );
+								break;
+							case 'free_text':
+								$this->render_free_text( $id, $field->key, $field->label, $field->required );
+								break;
+							case 'file':
+								$this->render_file( $id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
+								break;
+							case 'boolean':
+								$this->render_boolean( $id, $field->key, $field->label, $field->required );
+								break;
+							case 'date':
+								$this->render_date( $id, $field->key, $field->label, $field->required );
+								break;
+						}
+					}
+					?>
+					<button type="button">Add Row</button>
+					</div>
+				</fieldset>
+			</br>
+			<?php
+			endif;
 	}
 
 	/**
@@ -488,94 +518,34 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_multiple_choice_question( $id, $key, $label, $required ) {
-		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="text" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
-		</br>
-		<?php
-	}
+	private function render_multiple_choice( $id, $key, $label, $required, $single_answer, $choices ) {
+		if ( $single_answer && isset( $choices ) && ! empty( $choices ) ) {
+			?>
 
-	/**
-	 * Display the textarea HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
-	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
-	 * @since     1.0.0
-	 */
-	private function render_free_text_question( $id, $key, $label, $required ) {
-		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<textarea id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>></textarea>
-		</br>
-		<?php
-	}
+			<p><?php echo esc_html( $label ); ?></p>
+			<?php foreach ( $choices as $choice ) : ?>
+				<label for="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>">
+					<?php echo esc_html( $choice->body ); ?>
+					<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="<?php echo esc_attr( $key ); ?>"/>
+				</label>
+			<?php endforeach; ?>
+			</br>
 
-	/**
-	 * Display the file input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
-	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
-	 * @param array $file_types The supported file types.
-	 * @param int $required The maximum file size.
-	 * @since     1.0.0
-	 */
-	private function render_file_question( $id, $key, $label, $required, $file_types, $max_file ) {
+		<?php } elseif ( isset( $choices ) && ! empty( $choices ) ) { ?>
+			<p><?php echo esc_html( $label ); ?></p>
+			<?php foreach ( $choices as $choice ) : ?>
+				<label for="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>">
+					<?php echo esc_html( $choice->body ); ?>
+					<input type="checkbox" id="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="<?php echo esc_attr( $key ); ?>"/>
+				</label>
+			<?php endforeach; ?>
+			</br>
 
-		if ( isset( $file_types ) && ! empty( $file_types ) ) {
-			foreach ( $file_types as $type_key => $file_type ) {
-				$file_types[ $type_key ] = '.' . $file_type;
-			}
-			$file_types_string = implode( ' ', $file_types );
+			<?php
 		}
 
-		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="file" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $file_types_string ? 'accept="' . esc_attr( $file_types_string ) . '"' : ''; ?> <?php echo $max_file ? 'data-max-size="' . esc_attr( $max_file ) . '"' : ''; ?>/>
-		</br>
-		<?php
 	}
 
-	/**
-	 * Display the boolean input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
-	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
-	 * @since     1.0.0
-	 */
-	private function render_boolean_question( $id, $key, $label, $required ) {
-		?>
-		<p><?php echo esc_html( $label ); ?></p>
-		<label>
-			Yes
-			<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . '-yes' ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="true"/>
-		</label>
-		<label>
-			No
-			<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . '-no' ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="false"/>
-		</label>
-		</br>
-		<?php
-	}
-
-	/**
-	 * Display the date input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
-	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
-	 * @since     1.0.0
-	 */
-	private function render_date_question( $id, $key, $label, $required ) {
-		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="date" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
-		</br>
-		<?php
-	}
 
 	/**
 	 * Display the dropdown HTML.
@@ -585,12 +555,22 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_dropdown_question( $id, $key, $label, $required ) {
-		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="text" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
-		</br>
-		<?php
+	private function render_dropdown( $id, $key, $label, $required, $single_answer, $choices ) {
+
+		if ( isset( $choices ) && ! empty( $choices ) ) {
+			?>
+			<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
+			<select id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $single_answer ? '' : 'multiple'; ?>>
+				<option value="" disabled selected>Select an option...</option>
+			<?php foreach ( $choices as $choice ) : ?>
+				<option value="<?php echo esc_attr( $choice->id ); ?>"><?php echo esc_html( $choice->body ); ?></option>
+			<?php endforeach; ?>
+
+			</select>
+			</br>
+			<?php
+		}
+
 	}
 
 	/**
@@ -601,7 +581,7 @@ class Workable {
 	 * @param string $required Should the field be required.
 	 * @since     1.0.0
 	 */
-	private function render_numeric_question( $id, $key, $label, $required ) {
+	private function render_numeric( $id, $key, $label, $required ) {
 		?>
 		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
 		<input type="number" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
