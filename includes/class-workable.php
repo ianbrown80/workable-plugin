@@ -321,6 +321,7 @@ class Workable {
 	 */
 	private function render_form_fields( $form_id, $fields ) {
 
+		// Go though each of the "field" properties and display the HTML for them.
 		foreach ( $fields as $field ) {
 
 			switch ( $field->type ) {
@@ -354,6 +355,7 @@ class Workable {
 	 */
 	private function render_form_questions( $form_id, $questions ) {
 
+		// Go though each of the "question" properties and display the HTML for them.
 		foreach ( $questions as $question ) {
 
 			switch ( $question->type ) {
@@ -448,6 +450,7 @@ class Workable {
 	 */
 	private function render_file( $form_id, $name, $label, $required, $file_types, $max_file ) {
 
+		// Get a string of the supported file types 
 		if ( isset( $file_types ) && ! empty( $file_types ) ) {
 			foreach ( $file_types as $type_key => $file_type ) {
 				$file_types[ $type_key ] = '.' . $file_type;
@@ -530,6 +533,7 @@ class Workable {
 	 */
 	private function render_complex( $form_id, $name, $label, $required, $multiple, $fields ) {
 
+		// I suspect the API may have a different way of displaying single "complex fields" but I can't find any documentaion on them.
 		if ( $multiple ) :
 			?>
 			<fieldset id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--field-container workable-form--field-container--fieldset <?php echo $required ? 'workable-form--required-field' : ''; ?>">
@@ -538,6 +542,8 @@ class Workable {
 				<button type="button" class="workable-form--button workable-form--button-add">Add</button>
 				<div class="workable-form--complex-field-row">
 				<?php
+
+				// Go througheach field and render it.
 				foreach ( $fields as $field ) {
 					switch ( $field->type ) {
 						case 'string':
@@ -583,6 +589,7 @@ class Workable {
 	 */
 	private function render_multiple_choice( $form_id, $name, $label, $required, $single_answer, $choices ) {
 
+		// For single answer fields, use radio inputs.
 		if ( $single_answer && isset( $choices ) && ! empty( $choices ) ) {
 			?>
 
@@ -599,7 +606,8 @@ class Workable {
 			</br>
 
 		<?php } elseif ( isset( $choices ) && ! empty( $choices ) ) { ?>
-
+			// For multi answer, use checkboxes.
+			
 			<div class="workable-form--field-container workable-form--field-container--checkbox <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
 				<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>	
 				<p><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></p>
