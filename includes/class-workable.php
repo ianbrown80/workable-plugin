@@ -82,12 +82,13 @@ class Workable {
 		}
 		$this->plugin_name = 'workable';
 
-		add_shortcode( 'workable_form', array( $this, 'get_workable_form' ) );
-
 		$this->load_dependencies();
 		$this->set_locale();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
+
+		// Create the shortcode to display the form.
+		add_shortcode( 'workable_form', array( $this, 'get_workable_form' ) );
 
 	}
 
@@ -137,6 +138,7 @@ class Workable {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-workable-public.php';
 
+		// Initialise the classes needed.
 		$this->loader = new Workable_Loader();
 		$this->api    = new Workable_API();
 
@@ -188,6 +190,8 @@ class Workable {
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+
+		// These are the Ajax hooks needed to send the form to Workable.
 		$this->loader->add_action( 'wp_ajax_send_application_form', $this->api, 'send_application_form' );
 		$this->loader->add_action( 'wp_ajax_nopriv_send_application_form', $this->api, 'send_application_form' );
 
@@ -235,50 +239,68 @@ class Workable {
 
 	/**
 	 * Display the form from Workable.
+	 *
+	 * This is the function that is run when the form shortcode is used
+	 *
 	 * @param array $attr the attributes passed into the shortcode.
 	 * @since     1.0.0
 	 */
 	public function get_workable_form( $attr ) {
 
-		$error   = false;
+		$error = false;
+
+		// Set a default form shortcode value.
 		$default = array(
 			'shortcode' => '',
 		);
-
+		// Set the attributes passed in.
 		$attributes = shortcode_atts( $default, $attr );
 		$shortcode  = $attributes['shortcode'];
 
 		if ( isset( $shortcode ) && ! empty( $shortcode ) ) {
 
+			// Get the application form from the API.
 			$form = $this->api->get_application_form( $shortcode );
 
+			// If the form doesn't generate an error, display it.
 			if ( ! is_wp_error( $form ) ) {
 
 				ob_start();
 
+				// Show the top of the form.
 				$this->render_form_header( $shortcode );
 
+				// Show the form fields.
 				if ( isset( $form->form_fields ) && ! empty( $form->form_fields ) ) {
 
 					$this->render_form_fields( $shortcode, $form->form_fields );
 
 				}
 
+				// Show the form questions.
 				if ( isset( $form->questions ) && ! empty( $form->questions ) ) {
 
 					$this->render_form_questions( $shortcode, $form->questions );
 
 				}
 
+				// Show the bottom of the form.
 				$this->render_form_footer( $shortcode );
 
 				ob_end_flush();
 
 			} else {
+				// If the API has returned an error, save it to display later.
 				$error = $form;
 			}
 		} else {
+			// Set an error if the form shortcode is empty.
 			$error = new WP_Error( 'missing_shortcode', 'The form shortcode is missing' );
+		}
+
+		// If there has been an error, display it.
+		if ( $error ) {
+			echo '<p>' . esc_html( $error->get_error_message() ) . '</p>';
 		}
 	}
 
@@ -293,32 +315,32 @@ class Workable {
 
 	/**
 	 * Display the form fields HTML.
-	 * @param string $id Unique id for the form.
+	 * @param string $form_id Unique id for the form.
 	 * @param array $fields The fields in the form.
 	 * @since     1.0.0
 	 */
-	private function render_form_fields( $id, $fields ) {
+	private function render_form_fields( $form_id, $fields ) {
 
 		foreach ( $fields as $field ) {
 
 			switch ( $field->type ) {
 				case 'string':
-					$this->render_text( $id, $field->key, $field->label, $field->required, isset( $field->max_length ) ? $field->max_length : '' );
+					$this->render_text( $form_id, $field->key, $field->label, $field->required, isset( $field->max_length ) ? $field->max_length : '' );
 					break;
 				case 'free_text':
-					$this->render_free_text( $id, $field->key, $field->label, $field->required );
+					$this->render_free_text( $form_id, $field->key, $field->label, $field->required );
 					break;
 				case 'file':
-					$this->render_file( $id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
+					$this->render_file( $form_id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
 					break;
 				case 'boolean':
-					$this->render_boolean( $id, $field->key, $field->label, $field->required );
+					$this->render_boolean( $form_id, $field->key, $field->label, $field->required );
 					break;
 				case 'date':
-					$this->render_date( $id, $field->key, $field->label, $field->required );
+					$this->render_date( $form_id, $field->key, $field->label, $field->required );
 					break;
 				case 'complex':
-					$this->render_complex( $id, $field->key, $field->label, $field->required, $field->multiple, $field->fields );
+					$this->render_complex( $form_id, $field->key, $field->label, $field->required, $field->multiple, $field->fields );
 					break;
 			}
 		}
@@ -326,35 +348,35 @@ class Workable {
 
 	/**
 	 * Display the form questions HTML.
-	 * @param string $id Unique id for the form.
+	 * @param string $form_id Unique id for the form.
 	 * @param array $questions The questions in the form.
 	 * @since     1.0.0
 	 */
-	private function render_form_questions( $id, $questions ) {
+	private function render_form_questions( $form_id, $questions ) {
 
 		foreach ( $questions as $question ) {
 
 			switch ( $question->type ) {
 				case 'multiple_choice':
-					$this->render_multiple_choice( $id, $question->id, $question->body, $question->required, $question->single_answer, $question->choices );
+					$this->render_multiple_choice( $form_id, $question->id, $question->body, $question->required, $question->single_answer, $question->choices );
 					break;
 				case 'free_text':
-					$this->render_free_text( $id, $question->id, $question->body, $question->required );
+					$this->render_free_text( $form_id, $question->id, $question->body, $question->required );
 					break;
 				case 'file':
-					$this->render_file( $id, $question->id, $question->body, $question->required, $question->supported_file_types, $question->max_file_size );
+					$this->render_file( $form_id, $question->id, $question->body, $question->required, $question->supported_file_types, $question->max_file_size );
 					break;
 				case 'boolean':
-					$this->render_boolean( $id, $question->id, $question->body, $question->required );
+					$this->render_boolean( $form_id, $question->id, $question->body, $question->required );
 					break;
 				case 'date':
-					$this->render_date( $id, $question->id, $question->body, $question->required );
+					$this->render_date( $form_id, $question->id, $question->body, $question->required );
 					break;
 				case 'dropdown':
-					$this->render_dropdown( $id, $question->id, $question->body, $question->required, $question->single_answer, $question->choices );
+					$this->render_dropdown( $form_id, $question->id, $question->body, $question->required, $question->single_answer, $question->choices );
 					break;
 				case 'numeric':
-					$this->render_numeric( $id, $question->id, $question->body, $question->required );
+					$this->render_numeric( $form_id, $question->id, $question->body, $question->required );
 					break;
 			}
 		}
@@ -371,174 +393,223 @@ class Workable {
 
 	/**
 	 * Display the text input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 * @param int $maxlength The maximum input size.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_text( $id, $key, $label, $required, $maxlength = '' ) {
+	private function render_text( $form_id, $name, $label, $required, $maxlength = '' ) {
 		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="text" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $maxlength ? 'maxlength="' . esc_attr( $maxlength ) . '"' : ''; ?>/>
+		<div class="workable-form--field-container workable-form--field-container--text <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+			<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--label workable-form--label-text"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></label>
+			<input type="text" class="workable-form--input workable-form--input-text" id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $maxlength ? 'maxlength="' . esc_attr( $maxlength ) . '"' : ''; ?> />
+		</div>
 		</br>
 		<?php
 	}
 
 	/**
 	 * Display the textarea HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_free_text( $id, $key, $label, $required ) {
+	private function render_free_text( $form_id, $name, $label, $required ) {
 		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<textarea id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>></textarea>
+		<div class="workable-form--field-container workable-form--field-container--textarea <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+			<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--label workable-form--label-textarea"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></label>
+			<textarea id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--input workable-form--input-textarea" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> ></textarea>
+		</div>
 		</br>
 		<?php
 	}
 
 	/**
 	 * Display the file input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
 	 * @param array $file_types The supported file types.
-	 * @param int $required The maximum file size.
+	 * @param int $max_file The maximum file size.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_file( $id, $key, $label, $required, $file_types, $max_file ) {
+	private function render_file( $form_id, $name, $label, $required, $file_types, $max_file ) {
 
 		if ( isset( $file_types ) && ! empty( $file_types ) ) {
 			foreach ( $file_types as $type_key => $file_type ) {
 				$file_types[ $type_key ] = '.' . $file_type;
 			}
-			$file_types_string = implode( ' ', $file_types );
+			$file_types_string = implode( ', ', $file_types );
 		}
 
 		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="file" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $file_types_string ? 'accept="' . esc_attr( $file_types_string ) . '"' : ''; ?> <?php echo $max_file ? 'data-max-size="' . esc_attr( $max_file ) . '"' : ''; ?>/>
+		<div class="workable-form--field-container workable-form--field-container--file <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+			<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id ); ?>"class="workable-form--label workable-form--label-file"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></label>
+			<input type="file" class="workable-form--input workable-form--input-file" id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $file_types_string ? 'accept="' . esc_attr( $file_types_string ) . '"' : ''; ?> <?php echo $max_file ? 'data-max-size="' . esc_attr( $max_file ) . '"' : ''; ?> />
+		</div>
 		</br>
 		<?php
 	}
 
 	/**
 	 * Display the boolean input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_boolean( $id, $key, $label, $required ) {
+	private function render_boolean( $form_id, $name, $label, $required ) {
 		?>
-		<p><?php echo esc_html( $label ); ?></p>
-		<label for="<?php echo esc_attr( $key . '-' . $id . '-yes' ); ?>">
-			Yes
-			<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . '-yes' ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="true"/>
-		</label>
-		<label for="<?php echo esc_attr( $key . '-' . $id . '-no' ); ?>">
-			No
-			<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . '-no' ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="false"/>
-		</label>
+		<div class="workable-form--field-container workable-form--field-container--radio <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+			<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+			<p><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></p>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id . '-yes' ); ?>" class="workable-form--label workable-form--label-radio">
+				Yes
+				<input type="radio" class="workable-form--input workable-form--input-radio" id="<?php echo esc_attr( $name . '-' . $form_id . '-yes' ); ?>" name="<?php echo esc_attr( $name ); ?>" value="true" />
+			</label>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id . '-no' ); ?>" class="workable-form--label workable-form--label-radio">
+				No
+				<input type="radio" class="workable-form--input workable-form--input-radio" id="<?php echo esc_attr( $name . '-' . $form_id . '-no' ); ?>" name="<?php echo esc_attr( $name ); ?>" value="false" />
+			</label>
+		</div>
 		</br>
 		<?php
 	}
 
 	/**
 	 * Display the date input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_date( $id, $key, $label, $required ) {
+	private function render_date( $form_id, $name, $label, $required ) {
 		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="date" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
+		<div class="workable-form--field-container workable-form--field-container--text <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+			<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--label workable-form--label-text"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></label>
+			<input type="date" id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--input workable-form--input-text" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> />
+		</div>
 		</br>
 		<?php
 	}
 
 	/**
 	 * Display the complex inputs HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * A group of fields added together. At the moment, I can't see an example of how if should behave if multiple is set to false.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 * @param boolean $multiple Determins the type of complex fieldset.
+	 * @param array $fields an array of fields in the fieldset.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_complex( $id, $key, $label, $required, $multiple, $fields ) {
+	private function render_complex( $form_id, $name, $label, $required, $multiple, $fields ) {
 
 		if ( $multiple ) :
 			?>
-			<fieldset id="<?php echo esc_attr( $key . '-' . $id ); ?>">
-				<legend><?php echo esc_html( $label ); ?> </legend>
-					<div class="field-row">
-					<?php
-					foreach ( $fields as $field ) {
-						switch ( $field->type ) {
-							case 'string':
-								$this->render_text( $id, $field->key, $field->label, $field->required, isset( $field->max_length ) ? $field->max_length : '' );
-								break;
-							case 'free_text':
-								$this->render_free_text( $id, $field->key, $field->label, $field->required );
-								break;
-							case 'file':
-								$this->render_file( $id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
-								break;
-							case 'boolean':
-								$this->render_boolean( $id, $field->key, $field->label, $field->required );
-								break;
-							case 'date':
-								$this->render_date( $id, $field->key, $field->label, $field->required );
-								break;
-						}
+			<fieldset id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--field-container workable-form--field-container--fieldset <?php echo $required ? 'workable-form--required-field' : ''; ?>">
+				<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+				<legend class="workable-form--label workable-form--label-fieldset"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?> </legend>
+				<button type="button" class="workable-form--button workable-form--button-add">Add</button>
+				<div class="workable-form--complex-field-row">
+				<?php
+				foreach ( $fields as $field ) {
+					switch ( $field->type ) {
+						case 'string':
+							$this->render_text( $form_id, $field->key, $field->label, $field->required, isset( $field->max_length ) ? $field->max_length : '' );
+							break;
+						case 'free_text':
+							$this->render_free_text( $form_id, $field->key, $field->label, $field->required );
+							break;
+						case 'file':
+							$this->render_file( $form_id, $field->key, $field->label, $field->required, $field->supported_file_types, $field->max_file_size );
+							break;
+						case 'boolean':
+							$this->render_boolean( $form_id, $field->key, $field->label, $field->required );
+							break;
+						case 'date':
+							$this->render_date( $form_id, $field->key, $field->label, $field->required );
+							break;
 					}
-					?>
-					<button type="button">Add Row</button>
-					</div>
-				</fieldset>
-			</br>
+				}
+				?>
+				<button type="button" class="workable-form--button workable-form--button-save">Save</button>
+				</div>
+				<input type="hidden" class="workable-form--complex-input-hidden" id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> value="" />
+			</fieldset>
+		</br>
 			<?php
-			endif;
+		endif;
 	}
 
 	/**
 	 * Display the multiple choice HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * If the single answer is true, radio inputs are used, otherwse, checkbox inputs are used.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 * @param boolean $single_answer Determins if one or more answers are allowed.
+	 * @param array $choices an array of choices for the dropdown.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_multiple_choice( $id, $key, $label, $required, $single_answer, $choices ) {
+	private function render_multiple_choice( $form_id, $name, $label, $required, $single_answer, $choices ) {
+
 		if ( $single_answer && isset( $choices ) && ! empty( $choices ) ) {
 			?>
 
-			<p><?php echo esc_html( $label ); ?></p>
-			<?php foreach ( $choices as $choice ) : ?>
-				<label for="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>">
-					<?php echo esc_html( $choice->body ); ?>
-					<input type="radio" id="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="<?php echo esc_attr( $key ); ?>"/>
-				</label>
-			<?php endforeach; ?>
+			<div class="workable-form--field-container workable-form--field-container--radio <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+				<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+				<p><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></p>
+				<?php foreach ( $choices as $choice ) : ?>
+					<label for="<?php echo esc_attr( $name . '-' . $form_id . $choice->id ); ?>" class="workable-form--label workable-form--label-radio">
+						<?php echo esc_html( $choice->body ); ?>
+						<input type="radio" class="workable-form--input workable-form--input-radio" id="<?php echo esc_attr( $name . '-' . $form_id . '-' . $choice->id ); ?>" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $choice->id ); ?>"/>
+					</label>
+				<?php endforeach; ?>
+			</div>
 			</br>
 
 		<?php } elseif ( isset( $choices ) && ! empty( $choices ) ) { ?>
-			<p><?php echo esc_html( $label ); ?></p>
-			<?php foreach ( $choices as $choice ) : ?>
-				<label for="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>">
-					<?php echo esc_html( $choice->body ); ?>
-					<input type="checkbox" id="<?php echo esc_attr( $key . '-' . $id . $choice->id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> value="<?php echo esc_attr( $key ); ?>"/>
-				</label>
-			<?php endforeach; ?>
+
+			<div class="workable-form--field-container workable-form--field-container--checkbox <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+				<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>	
+				<p><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></p>
+				<?php foreach ( $choices as $choice ) : ?>
+					<label for="<?php echo esc_attr( $name . '-' . $form_id . $choice->id ); ?>" class="workable-form--label workable-form--label-checkbox">
+						<?php echo esc_html( $choice->body ); ?>
+						<input type="checkbox" class="workable-form--input workable-form--input-checkbox" id="<?php echo esc_attr( $name . '-' . $form_id . '-' . $choice->id ); ?>" name="<?php echo esc_attr( $name ); ?>[]" value="<?php echo esc_attr( $choice->id ); ?>"/>
+					</label>
+				<?php endforeach; ?>
+			</div>
 			</br>
 
 			<?php
@@ -546,27 +617,32 @@ class Workable {
 
 	}
 
-
 	/**
 	 * Display the dropdown HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 * @param boolean $single_answer Determins if one or more answers are allowed.
+	 * @param array $choices an array of choices for the dropdown.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_dropdown( $id, $key, $label, $required, $single_answer, $choices ) {
+	private function render_dropdown( $form_id, $name, $label, $required, $single_answer, $choices ) {
 
 		if ( isset( $choices ) && ! empty( $choices ) ) {
 			?>
-			<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-			<select id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $single_answer ? '' : 'multiple'; ?>>
-				<option value="" disabled selected>Select an option...</option>
-			<?php foreach ( $choices as $choice ) : ?>
-				<option value="<?php echo esc_attr( $choice->id ); ?>"><?php echo esc_html( $choice->body ); ?></option>
-			<?php endforeach; ?>
-
-			</select>
+			<div class="workable-form--field-container workable-form--field-container--select <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+				<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+				<label for="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--label workable-form--label-select"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></label>
+				<select id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> <?php echo $single_answer ? '' : 'multiple'; ?> >
+					<option value="" class="workable-form--input workable-form--input-select" disabled selected>Select an option...</option>
+					<?php foreach ( $choices as $choice ) : ?>
+						<option value="<?php echo esc_attr( $choice->id ); ?>" class="workable-form--input workable-form--input-select"><?php echo esc_html( $choice->body ); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
 			</br>
 			<?php
 		}
@@ -575,16 +651,21 @@ class Workable {
 
 	/**
 	 * Display the numeric input HTML.
-	 * @param string $id Unique id for the form.
-	 * @param string $key The field name.
+	 *
+	 * @param string $form_id Unique id for the form.
+	 * @param string $name The field name.
 	 * @param string $label The field label.
-	 * @param string $required Should the field be required.
+	 * @param boolean $required Should the field be required.
+	 *
 	 * @since     1.0.0
 	 */
-	private function render_numeric( $id, $key, $label, $required ) {
+	private function render_numeric( $form_id, $name, $label, $required ) {
 		?>
-		<label for="<?php echo esc_attr( $key . '-' . $id ); ?>"><?php echo esc_html( $label ); ?></label>
-		<input type="number" id="<?php echo esc_attr( $key . '-' . $id ); ?>" name="<?php echo esc_attr( $key ); ?>" <?php echo $required ? 'required' : ''; ?>/>
+		<div class="workable-form--field-container workable-form--field-container--text <?php echo $required ? 'workable-form--required-field' : ''; ?>" >
+			<?php echo $required ? '<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>' : ''; ?>
+			<label for="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--label workable-form--label-text"><?php echo $required ? '<span class="workable-form--required">*</span>' : ''; ?><?php echo esc_html( $label ); ?></label>
+			<input type="number" id="<?php echo esc_attr( $name . '-' . $form_id ); ?>" class="workable-form--input workable-form--input-text" name="<?php echo esc_attr( $name ); ?>" <?php echo $required ? 'required' : ''; ?> />
+		</div>
 		</br>
 		<?php
 	}

@@ -1,1 +1,8 @@
+.workable-form--validation {
+	color: red;
+	display: none;
+}
 
+.workable-form--complex-field-row {
+	display: none;
+}

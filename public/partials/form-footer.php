@@ -17,7 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 		<?php wp_nonce_field( 'submit_workable_form', 'workable_form_nonce', true, true ); ?>
 		<input type="hidden" name="shortcode" value="<?php echo esc_attr( $shortcode ); ?>" />
-		<button type="submit" id="<?php echo esc_attr( 'submit-' . $shortcode ); ?>" class="workable-form-submit">Submit</button>
+		<button type="submit" id="<?php echo esc_attr( 'submit-' . $shortcode ); ?>" class="workable-form--button workable-form--button-submit">Submit</button>
+		<p class="workable-form--validation workable-form--validation-submit-fail"></p>	
+		<p class="workable-form--validation workable-form--validation-submit-success"></p>	
 	</form>
 </div>
 

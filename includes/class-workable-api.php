@@ -49,6 +49,7 @@ class Workable_API {
 	 */
 	private function get_header() {
 
+		// Create the athorisation header
 		return 'Bearer ' . $this->token;
 
 	}
@@ -62,6 +63,7 @@ class Workable_API {
 	 */
 	private function get_url() {
 
+		// Create the url for the API.
 		return 'https://' . $this->subdomain . '.workable.com/spi/v3/';
 
 	}
@@ -76,6 +78,7 @@ class Workable_API {
 	 */
 	public function get_application_form( $shortcode ) {
 
+		// Pass the application form shortcode to the Workable API.
 		if ( $shortcode ) {
 			$response = wp_remote_request(
 				$this->get_url() . 'jobs/' . $shortcode . '/application_form/',
@@ -88,6 +91,7 @@ class Workable_API {
 				),
 			);
 
+			// Return a response depending on the error code returned.
 			switch ( $response['response']['code'] ) {
 				case '200':
 					$result = json_decode( $response['body'] );
@@ -102,7 +106,7 @@ class Workable_API {
 					$result = new WP_Error( 'unknown', 'Unknown error' );
 			}
 		} else {
-
+			// Return a response if the form shorcode is missing from the WordPress shortcode.
 			$result = new WP_Error( 'missing_shortcode', 'The form shortcode is missing' );
 
 		}
@@ -117,15 +121,40 @@ class Workable_API {
 	 */
 	public function send_application_form() {
 
+		$result = array();
+
+		// Prevent the form from being spammed by bots.
 		if ( wp_verify_nonce( $_POST['workable_form_nonce'], 'submit_workable_form' ) ) {
 
+			// Convert the $_POST data into the format needed by Workable.
 			$form_data            = $_POST;
 			$form_data['sourced'] = false;
 
+			// Remove any POST data that doesn't need to be sent.
 			unset( $form_data['_wp_http_referer'] );
 			unset( $form_data['workable_form_nonce'] );
 			unset( $form_data['action'] );
 
+			// Remove any empty keys.
+			foreach ( $form_data as $key => $value ) {
+				if ( '' === $value ) {
+					unset( $form_data[ $key ] );
+				}
+			}
+
+			// Add the uploaded files to the form data.
+			if ( isset( $_FILES ) && ! empty( $_FILES ) ) {
+				foreach ( $_FILES as $field => $file ) {
+					if ( $file['name'] && $file['tmp_name'] ) {
+						$form_data[ $field ] = array(
+							'name' => $file['name'],
+							'data' => base64_encode( file_get_contents( $file['tmp_name'] ) ),
+						);
+					}
+				}
+			}
+
+			// Send the data to Workable.
 			$response = wp_remote_request(
 				$this->get_url() . 'jobs/' . $form_data['shortcode'] . '/candidates',
 				array(
@@ -139,10 +168,27 @@ class Workable_API {
 				),
 			);
 		} else {
-			wp_die( 'Validation failure' );
+			// If the nonce has failed, prepare an error.
+			$result = new WP_Error( 'error', 'Validation error' );
 		}
 
-		var_dump( $response );
+		// Prepare a response depending on the code returned by the API.
+		switch ( $response['response']['code'] ) {
+			case '201':
+				$result['success'] = 'Thank you for your submission';
+				break;
+			case '401':
+				$result = new WP_Error( 'error', $response['response']['message'] );
+				break;
+			case '422':
+				$result = new WP_Error( 'error', $response['response']['message'] );
+				break;
+			default:
+				$result = new WP_Error( 'error', 'Unfortunatly we were unable to submit your application. Please try again later' );
+		}
+
+		// Send the response back to the page to be displayed.
+		echo wp_json_encode( $result );
 
 		wp_die();
 
