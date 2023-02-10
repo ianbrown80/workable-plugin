@@ -27,7 +27,7 @@
 					var currentValues = $( this ).parents( 'fieldset' ).find( '.workable-form--complex-input-hidden' ).val() ? JSON.parse( $( this ).parents( 'fieldset' ).find( '.workable-form--complex-input-hidden' ).val() ) : [];
 
 					// Go through each of the inputs in the fieldset and add the value to an array
-					$( this ).siblings( '.workable-form--field-container' ).find( 'input' ).each(
+					$( this ).siblings( '.workable-form--field-container' ).find( 'input, textarea' ).each(
 						function() {
 							if ($( this ).val()) {
 								fields[$( this ).attr( 'name' )] = $( this ).val();
@@ -56,11 +56,11 @@
 					var valid = true;
 					var form  = $( this ).parents( 'form.workable-form' )[0];
 
-					// Go through each element that is set to be required. 
+					// Go through each element that is set to be required.
 					$( form ).find( '.workable-form--required-field' ).each(
 						function(){
 
-							// Check the input, select and textarea elements first 
+							// Check the input, select and textarea elements first
 							$( this ).find( '[required]' ).each(
 								function() {
 									if ( ! $( this ).val() ) {
@@ -112,7 +112,32 @@
 
 						// If all validation checks are done, submit the form with ajax.
 						let formData = new FormData( form );
+
+						// The questions need to be packaged a lttle differntly.
+						// var questions = [];
+
+						// $( '.workable-form--question' ).each(
+						// 	function() {
+
+						// 		$( this ).find( 'input, select, textarea' ).each(
+						// 			function() {
+						// 				var name = $( this ).attr( 'name' );
+						// 				if (formData.has( name )) {
+						// 					questions.push(
+						// 						{
+						// 							"question_key" : name,
+						// 							"body" : $( this ).val()
+						// 						}
+						// 					)
+						// 					formData.delete( name );
+						// 				}
+						// 			}
+						// 		)
+						// 	}
+						// )
+
 						formData.append( 'action', 'send_application_form' );
+						// formData.append( 'answers', JSON.stringify( questions ) );
 
 						$.ajax(
 							{
@@ -125,6 +150,7 @@
 								success: function( response ) {
 									var result = JSON.parse( response );
 									if ( result.success ) {
+
 										// Display any message that is returned.
 										$( '.workable-form--validation-submit-success' ).html( result.success );
 										$( '.workable-form--validation-submit-success' ).show();

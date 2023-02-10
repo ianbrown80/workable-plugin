@@ -167,6 +167,7 @@ class Workable_API {
 					'body'    => wp_json_encode( $form_data ),
 				),
 			);
+
 		} else {
 			// If the nonce has failed, prepare an error.
 			$result = new WP_Error( 'error', 'Validation error' );
@@ -184,7 +185,7 @@ class Workable_API {
 				$result = new WP_Error( 'error', $response['response']['message'] );
 				break;
 			default:
-				$result = new WP_Error( 'error', 'Unfortunatly we were unable to submit your application. Please try again later' );
+				$result = new WP_Error( 'error', 'Unfortunatly we were unable to submit your application. Please try again later. Code :' . $response['response']['code'] );
 		}
 
 		// Send the response back to the page to be displayed.
