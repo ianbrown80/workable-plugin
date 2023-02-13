@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <div class="workable-form-container">
-	<form id="<?php echo esc_attr( 'workable-form-' . $shortcode ); ?>" class="workable-form" action="#">
+	<form id="<?php echo esc_attr( 'workable-form-' . $shortcode ); ?>" class="workable-form" action="#" <?php echo $success_url ? 'data-success="' . esc_attr( $success_url ) . '"' : ''; ?> >
 		<div class="workable-form--field-container workable-form--field-container--text workable-form--required-field" >
 			<p class="workable-form--validation workable-form--validation-empty">Please fill in the required field</p>
 			<label for="<?php echo esc_attr( 'firstname-' . $shortcode ); ?>" class="workable-form--label workable-form--label-text"><span class="workable-form--required">*</span>First name</label>

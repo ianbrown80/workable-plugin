@@ -6,3 +6,9 @@
 .workable-form--complex-field-row {
 	display: none;
 }
+
+.workable-form--spinner {
+	display: none;
+	height: 15px;
+    padding-left: 10px;
+}

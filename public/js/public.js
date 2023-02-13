@@ -108,36 +108,23 @@
 						}
 					);
 
-					if (valid) {
+					if ( valid ) {
 
 						// If all validation checks are done, submit the form with ajax.
-						let formData = new FormData( form );
+						let formData    = new FormData( form );
+						let $successUrl = $( form ).data( 'success' );
+						let $loading    = $( '.workable-form--spinner' ).hide();
 
-						// The questions need to be packaged a lttle differntly.
-						// var questions = [];
-
-						// $( '.workable-form--question' ).each(
-						// 	function() {
-
-						// 		$( this ).find( 'input, select, textarea' ).each(
-						// 			function() {
-						// 				var name = $( this ).attr( 'name' );
-						// 				if (formData.has( name )) {
-						// 					questions.push(
-						// 						{
-						// 							"question_key" : name,
-						// 							"body" : $( this ).val()
-						// 						}
-						// 					)
-						// 					formData.delete( name );
-						// 				}
-						// 			}
-						// 		)
-						// 	}
-						// )
-
+						// Show a loading spinner when waiting for the form to submit.
+						$(document)
+							.ajaxStart(function () {
+								$loading.show();
+							})
+							.ajaxStop(function () {
+								$loading.hide();
+							});
+						
 						formData.append( 'action', 'send_application_form' );
-						// formData.append( 'answers', JSON.stringify( questions ) );
 
 						$.ajax(
 							{
@@ -151,10 +138,20 @@
 									var result = JSON.parse( response );
 									if ( result.success ) {
 
-										// Display any message that is returned.
-										$( '.workable-form--validation-submit-success' ).html( result.success );
-										$( '.workable-form--validation-submit-success' ).show();
-										$( '.workable-form--validation-submit-fail' ).hide();
+										if ( $successUrl ) {
+
+											window.location.href = $successUrl;
+
+										} else {
+
+											// Display any message that is returned.
+											$( '.workable-form--validation-submit-success' ).html( result.success );
+											$( '.workable-form--validation-submit-success' ).show();
+											$( '.workable-form--validation-submit-fail' ).hide();
+
+										}
+
+										
 									} else {
 										$( '.workable-form--validation-submit-fail' ).html( result.error ? result.error : 'Unfortunatly we were unable to submit your application. Please try again later' );
 										$( '.workable-form--validation-submit-success' ).hide();

@@ -251,11 +251,14 @@ class Workable {
 
 		// Set a default form shortcode value.
 		$default = array(
-			'shortcode' => '',
+			'shortcode'       => '',
+			'success_post_id' => '',
 		);
 		// Set the attributes passed in.
-		$attributes = shortcode_atts( $default, $attr );
-		$shortcode  = $attributes['shortcode'];
+		$attributes  = shortcode_atts( $default, $attr );
+		$shortcode   = $attributes['shortcode'];
+
+		$success_url = get_permalink( $attributes['success_post_id'] );
 
 		if ( isset( $shortcode ) && ! empty( $shortcode ) ) {
 
@@ -268,7 +271,7 @@ class Workable {
 				ob_start();
 
 				// Show the top of the form.
-				$this->render_form_header( $shortcode );
+				$this->render_form_header( $shortcode, $success_url );
 
 				// Show the form fields.
 				if ( isset( $form->form_fields ) && ! empty( $form->form_fields ) ) {
@@ -287,7 +290,7 @@ class Workable {
 				// Show the bottom of the form.
 				$this->render_form_footer( $shortcode );
 
-				ob_end_flush();
+				return ob_get_clean();
 
 			} else {
 				// If the API has returned an error, save it to display later.
@@ -300,7 +303,7 @@ class Workable {
 
 		// If there has been an error, display it.
 		if ( $error ) {
-			echo '<p>' . esc_html( $error->get_error_message() ) . '</p>';
+			return '<p>' . esc_html( $error->get_error_message() ) . '</p>';
 		}
 	}
 
@@ -308,7 +311,7 @@ class Workable {
 	 * Display the form header HTML.
 	 * @since     1.0.0
 	 */
-	private function render_form_header( $shortcode ) {
+	private function render_form_header( $shortcode, $success_url ) {
 
 		include_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/partials/form-header.php';
 	}

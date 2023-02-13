@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 		<?php wp_nonce_field( 'submit_workable_form', 'workable_form_nonce', true, true ); ?>
 		<input type="hidden" name="shortcode" value="<?php echo esc_attr( $shortcode ); ?>" />
-		<button type="submit" id="<?php echo esc_attr( 'submit-' . $shortcode ); ?>" class="workable-form--button workable-form--button-submit">Submit</button>
+		<button type="submit" id="<?php echo esc_attr( 'submit-' . $shortcode ); ?>" class="workable-form--button workable-form--button-submit">Submit</button><img class="workable-form--spinner" src="<?php echo esc_attr( plugin_dir_url( dirname( __FILE__ ) ) . '/images/spinner.gif' ); ?>" alt="Loading spinner" />
 		<p class="workable-form--validation workable-form--validation-submit-fail"></p>	
 		<p class="workable-form--validation workable-form--validation-submit-success"></p>	
 	</form>
