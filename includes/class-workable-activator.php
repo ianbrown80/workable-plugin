@@ -3,11 +3,10 @@
 /**
  * Fired during plugin activation
  *
- * @link       http://example.com
  * @since      1.0.0
  *
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
+ * @package    Workable
+ * @subpackage Workable/includes
  */
 
 /**
@@ -16,16 +15,13 @@
  * This class defines all code necessary to run during the plugin's activation.
  *
  * @since      1.0.0
- * @package    Plugin_Name
- * @subpackage Plugin_Name/includes
- * @author     Your Name <email@example.com>
+ * @package    Workable
+ * @subpackage Workable/includes
+ * @author     Ian Brown <brown.i18@sky.com>
  */
-class Plugin_Name_Activator {
+class Workable_Activator {
 
 	/**
-	 * Short Description. (use period)
-	 *
-	 * Long Description.
 	 *
 	 * @since    1.0.0
 	 */
